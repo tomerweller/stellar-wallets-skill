@@ -1,0 +1,62 @@
+#!/bin/bash
+# Send XLM payment on Stellar
+# Usage: pay <SENDER> <RECIPIENT> <AMOUNT_XLM> [--asset CODE:ISSUER]
+# Output: JSON with transaction result
+
+set -e
+
+SENDER="${1:?Usage: pay <SENDER> <RECIPIENT> <AMOUNT_XLM> [--asset CODE:ISSUER]}"
+RECIPIENT="${2:?Usage: pay <SENDER> <RECIPIENT> <AMOUNT_XLM> [--asset CODE:ISSUER]}"
+AMOUNT_XLM="${3:?Usage: pay <SENDER> <RECIPIENT> <AMOUNT_XLM> [--asset CODE:ISSUER]}"
+ASSET="${5:-native}"
+
+# Parse --asset flag
+if [ "$4" = "--asset" ] && [ -n "$5" ]; then
+    ASSET="$5"
+fi
+
+# Convert XLM to stroops
+STROOPS=$(python3 -c "
+amount = float('$AMOUNT_XLM')
+if amount <= 0:
+    raise ValueError('Amount must be positive')
+stroops = int(amount * 10_000_000)
+print(stroops)
+" 2>/dev/null) || {
+    echo '{"success": false, "error": {"code": "invalid_amount", "message": "Invalid amount: '"$AMOUNT_XLM"'"}}'
+    exit 1
+}
+
+# Resolve sender address
+if [[ "$SENDER" != G* ]]; then
+    SENDER_ADDR=$(stellar keys address "$SENDER" 2>/dev/null) || SENDER_ADDR="$SENDER"
+else
+    SENDER_ADDR="$SENDER"
+fi
+
+# Resolve recipient address
+if [[ "$RECIPIENT" != G* ]]; then
+    RECIPIENT_ADDR=$(stellar keys address "$RECIPIENT" 2>/dev/null) || RECIPIENT_ADDR="$RECIPIENT"
+else
+    RECIPIENT_ADDR="$RECIPIENT"
+fi
+
+# Determine asset display name
+if [ "$ASSET" = "native" ]; then
+    ASSET_DISPLAY="XLM"
+else
+    ASSET_DISPLAY="$ASSET"
+fi
+
+# Send the payment
+OUTPUT=$(stellar tx new payment \
+    --source "$SENDER" \
+    --destination "$RECIPIENT" \
+    --asset "$ASSET" \
+    --amount "$STROOPS" \
+    --quiet 2>&1) || {
+    echo "{\"success\": false, \"error\": {\"code\": \"tx_failed\", \"message\": $(echo "$OUTPUT" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read().strip()))" 2>/dev/null || echo "\"Transaction failed\"")}}"
+    exit 1
+}
+
+echo "{\"success\": true, \"from\": \"$SENDER_ADDR\", \"to\": \"$RECIPIENT_ADDR\", \"amount\": \"$AMOUNT_XLM\", \"asset\": \"$ASSET_DISPLAY\", \"stroops\": $STROOPS}"

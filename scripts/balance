@@ -1,0 +1,48 @@
+#!/bin/bash
+# Get XLM balance for a Stellar account
+# Usage: balance <NAME_OR_ADDRESS>
+# Output: JSON with address, xlm (human-readable), and stroops
+
+set -e
+
+ACCOUNT="${1:?Usage: balance <NAME_OR_ADDRESS>}"
+
+# Resolve alias to address if needed
+if [[ "$ACCOUNT" != G* ]]; then
+    ADDRESS=$(stellar keys address "$ACCOUNT" 2>/dev/null) || {
+        echo '{"success": false, "error": {"code": "unknown_identity", "message": "Could not resolve identity: '"$ACCOUNT"'"}}'
+        exit 1
+    }
+else
+    ADDRESS="$ACCOUNT"
+fi
+
+# Fetch account entry
+ENTRY=$(stellar ledger entry fetch account --account "$ADDRESS" --output json 2>/dev/null) || {
+    echo '{"success": false, "error": {"code": "account_not_found", "message": "Account not found on network: '"$ADDRESS"'"}}'
+    exit 1
+}
+
+# Extract balance in stroops from the JSON
+STROOPS=$(echo "$ENTRY" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+try:
+    balance = data['parsed']['balance']
+    print(balance)
+except (KeyError, TypeError):
+    print('-1')
+" 2>/dev/null) || STROOPS="-1"
+
+if [ "$STROOPS" = "-1" ]; then
+    echo '{"success": false, "error": {"code": "parse_error", "message": "Could not parse balance from account entry"}}'
+    exit 1
+fi
+
+# Convert stroops to XLM (7 decimal places)
+XLM=$(python3 -c "print(f'{int($STROOPS) / 10_000_000:.7f}')" 2>/dev/null) || {
+    echo '{"success": false, "error": {"code": "conversion_error", "message": "Could not convert stroops to XLM"}}'
+    exit 1
+}
+
+echo "{\"success\": true, \"address\": \"$ADDRESS\", \"xlm\": \"$XLM\", \"stroops\": $STROOPS}"
