@@ -28,9 +28,10 @@ STROOPS=$(echo "$ENTRY" | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
 try:
-    balance = data['parsed']['balance']
+    # Handle 'stellar ledger entry fetch' output format
+    balance = data['entries'][0]['val']['account']['balance']
     print(balance)
-except (KeyError, TypeError):
+except (KeyError, TypeError, IndexError):
     print('-1')
 " 2>/dev/null) || STROOPS="-1"
 

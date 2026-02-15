@@ -14,17 +14,8 @@ check_stellar() {
 
 install_stellar() {
     echo "Installing stellar-cli..." >&2
-    # Fallback to reliable .deb for Linux/Debian/Ubuntu
-    if [ -f /etc/debian_version ]; then
-        DEB_URL="https://github.com/stellar/stellar-cli/releases/download/v25.1.0/stellar-cli_25.1.0_amd64.deb"
-        echo "Downloading $DEB_URL..."
-        curl -L "$DEB_URL" -o /tmp/stellar.deb
-        sudo dpkg -i /tmp/stellar.deb
-        rm /tmp/stellar.deb
-    else
-        # Generic install for others
-        curl -fsSL https://github.com/stellar/stellar-cli/raw/main/install.sh | sh
-    fi
+    # Use official install script (detects OS/Arch automatically)
+    curl -fsSL https://github.com/stellar/stellar-cli/raw/main/install.sh | sh
 }
 
 if ! check_stellar; then
