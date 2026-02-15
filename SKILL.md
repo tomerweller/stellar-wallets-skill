@@ -288,3 +288,45 @@ stellar keys fund <NAME>
 ```
 
 On mainnet, another account must send XLM via `tx new create-account`.
+
+## Payment notifications (heartbeat)
+
+The agent should monitor wallet balances during heartbeat checks and notify the owner when incoming payments are detected.
+
+### Setup
+
+Store the last-known balances in a state file (e.g. `memory/stellar-balances.json`):
+
+```json
+{
+  "accounts": {
+    "tomer-mainnet": {
+      "xlm": "100.0000000",
+      "lastChecked": 1700000000
+    }
+  }
+}
+```
+
+### Heartbeat check
+
+During periodic heartbeats, the agent should:
+
+1. Run `{baseDir}/scripts/balance <ACCOUNT>` for each tracked account
+2. Compare the current balance against `memory/stellar-balances.json`
+3. If the balance **increased**, notify the owner with:
+   - Account name
+   - Amount received (difference)
+   - New total balance
+4. Update the state file with the new balance and timestamp
+5. If the balance **decreased** unexpectedly (not from a payment the agent sent), alert the owner
+
+### Example notification
+
+> 💸 Incoming payment on `tomer-mainnet`: **+50.0 XLM** (new balance: 150.0 XLM)
+
+### Notes
+
+- Only check during heartbeats (a few times per day) — not every minute
+- Skip checks during quiet hours (23:00–08:00 owner local time) unless a large amount is received
+- Track all managed accounts (testnet and mainnet)
