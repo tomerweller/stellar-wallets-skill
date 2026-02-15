@@ -8,13 +8,32 @@ metadata: {"openclaw":{"emoji":"🌟","homepage":"https://github.com/stellar/ste
 
 This skill provides wallet operations on the Stellar network using `stellar-cli`. It supports creating accounts, checking balances, sending payments (XLM and tokens), and managing keys — all designed for non-interactive agentic use.
 
+## Authorization
+
+Wallet operations are split into two tiers:
+
+### 🔓 Public (anyone can request)
+- **View public keys / addresses** (`stellar keys address <NAME>`)
+- **Check balances** (read-only ledger queries)
+- **List known accounts**
+
+### 🔒 Owner-only (requires wallet owner authorization)
+- **Sending payments** (XLM or tokens)
+- **Signing transactions** (any `tx sign` operation)
+- **Creating on-ledger accounts** (costs XLM)
+- **Generating or importing keys**
+- **Any operation that spends funds or touches private keys**
+
+The wallet owner is identified by their Telegram user ID or username as configured in `USER.md`. If a non-owner requests a signing/spending operation, politely decline and explain that only the wallet owner can authorize transactions. You may offer to show public keys or balances instead.
+
 ## Safety rules
 
 1. **Never** log or output private keys, secret keys, or seed phrases.
-2. **Always** confirm with the user before sending a payment or creating an on-ledger account (these cost XLM).
-3. Prefer **testnet** for development and testing. Only use mainnet when the user explicitly requests it.
-4. Amounts are in **stroops** (1 XLM = 10,000,000 stroops) for `tx new` commands. State the human-readable amount when confirming with the user.
-5. Check the account balance before sending a payment to avoid failed transactions.
+2. **Always** confirm with the wallet owner before sending a payment or creating an on-ledger account (these cost XLM).
+3. **Never** sign or submit transactions on behalf of anyone other than the wallet owner.
+4. Prefer **testnet** for development and testing. Only use mainnet when the user explicitly requests it.
+5. Amounts are in **stroops** (1 XLM = 10,000,000 stroops) for `tx new` commands. State the human-readable amount when confirming with the user.
+6. Check the account balance before sending a payment to avoid failed transactions.
 
 ## Environment variables
 
