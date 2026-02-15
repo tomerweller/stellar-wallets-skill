@@ -49,6 +49,21 @@ Optional:
 - `STELLAR_NETWORK_PASSPHRASE` — network passphrase (set automatically when using named networks)
 - `STELLAR_INCLUSION_FEE` — default fee in stroops (default: 100)
 
+## RPC endpoints
+
+| Network | RPC URL |
+|---------|---------|
+| Mainnet | `https://rpc.lightsail.network/` |
+| Testnet | (built-in, no config needed) |
+
+When configuring mainnet, use the Lightsail RPC:
+
+```bash
+stellar network add mainnet \
+  --rpc-url https://rpc.lightsail.network/ \
+  --network-passphrase "Public Global Stellar Network ; September 2015"
+```
+
 ## One-time setup
 
 If `stellar` is not on PATH, run the bootstrap script:
