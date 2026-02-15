@@ -5,7 +5,8 @@
 
 set -e
 
-ACCOUNT="${1:?Usage: balance <NAME_OR_ADDRESS>}"
+ACCOUNT="${1:?Usage: balance <NAME_OR_ADDRESS> [NETWORK]}"
+NETWORK="${2:-testnet}"
 
 # Resolve alias to address if needed
 if [[ "$ACCOUNT" != G* ]]; then
@@ -18,7 +19,7 @@ else
 fi
 
 # Fetch account entry
-ENTRY=$(stellar ledger entry fetch account --account "$ADDRESS" --output json 2>/dev/null) || {
+ENTRY=$(stellar ledger entry fetch account --account "$ADDRESS" --network "$NETWORK" --output json 2>/dev/null) || {
     echo '{"success": false, "error": {"code": "account_not_found", "message": "Account not found on network: '"$ADDRESS"'"}}'
     exit 1
 }
