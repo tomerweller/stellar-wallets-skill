@@ -1,0 +1,41 @@
+#!/bin/bash
+# Establish trustline for an asset
+# Usage: trust <ACCOUNT> <ASSET_CODE> <ISSUER_ADDRESS> [LIMIT]
+# Output: JSON transaction result
+
+set -e
+
+ACCOUNT="${1:?Usage: trust <ACCOUNT> <ASSET_CODE> <ISSUER_ADDRESS> [LIMIT]}"
+CODE="${2:?Usage: trust <ACCOUNT> <ASSET_CODE> <ISSUER_ADDRESS> [LIMIT]}"
+ISSUER="${3:?Usage: trust <ACCOUNT> <ASSET_CODE> <ISSUER_ADDRESS> [LIMIT]}"
+LIMIT="${4:-}"
+
+ASSET="$CODE:$ISSUER"
+
+# Step 1: Build XDR
+LIMIT_ARG=""
+[ -n "$LIMIT" ] && LIMIT_ARG="--limit $LIMIT"
+
+XDR=$(stellar tx new change-trust \
+    --source "$ACCOUNT" \
+    --line "$ASSET" \
+    $LIMIT_ARG \
+    --network testnet \
+    --build-only 2>/dev/null) || {
+    echo "{\"success\": false, \"error\": {\"code\": \"build_failed\", \"message\": \"Failed to build change-trust transaction\"}}"
+    exit 1
+}
+
+# Step 2: Sign
+SIGNED=$(echo "$XDR" | stellar tx sign --sign-with-key "$ACCOUNT" --network testnet 2>/dev/null) || {
+    echo "{\"success\": false, \"error\": {\"code\": \"sign_failed\", \"message\": \"Failed to sign transaction\"}}"
+    exit 1
+}
+
+# Step 3: Send
+RESULT=$(stellar tx send --network testnet "$SIGNED" 2>/dev/null) || {
+    echo "{\"success\": false, \"error\": {\"code\": \"send_failed\", \"message\": \"Failed to send transaction\"}}"
+    exit 1
+}
+
+echo "{\"success\": true, \"account\": \"$ACCOUNT\", \"asset\": \"$ASSET\", \"limit\": \"$LIMIT\"}"
